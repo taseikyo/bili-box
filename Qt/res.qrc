@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/images">
+        <file alias="bililogo">bilibili.ico</file>
+        <file>background.jpg</file>
+    </qresource>
+</RCC>
