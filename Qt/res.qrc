@@ -2,5 +2,9 @@
     <qresource prefix="/images">
         <file alias="bililogo">bilibili.ico</file>
         <file>background.jpg</file>
+        <file>app.png</file>
+        <file>bgm.png</file>
+        <file>me.png</file>
+        <file>min.png</file>
     </qresource>
 </RCC>
