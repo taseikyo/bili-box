@@ -1,7 +1,8 @@
 <img src="images/bilibili.ico" height="120" alt="嗶哩嗶哩工具箱" title="嗶哩嗶哩工具箱" align="right">
 
 ## 嗶哩嗶哩工具箱
-一个用来下载视频、图片（或许会增加下载音频的功能也不一定）的一个小东西。
+一个用来下载视频、图片（或许会增加下载音频的功能也不一定）的一个小东西。<br >
+注：本项目图标大部分来自 [iconfont](http://www.iconfont.cn).
 
 <div align="center">
 	<img src="images/cover.png" alt="嗶哩嗶哩工具箱" title="嗶哩嗶哩工具箱">
@@ -14,9 +15,17 @@
 	<img src="images/cry.png" height="120" alt="掩面哭" title="掩面哭">
 </div>
 
+### 預覽
+展示一下当前已经实现的功能
+<div align="center">
+	<img src="images/preview.gif" alt="嗶哩嗶哩工具箱" title="嗶哩嗶哩工具箱">
+</div>
+
 ### 功能
+详情查看 [Log](LOG.md)
 - 修改窗口最小尺寸(默认是 960x540)
 - 根据季节修改左上角 logo(很抱歉只收集到了嗶哩嗶哩秋和冬，若是谁有春和夏麻烦发我一下)
+- 修改背景图片
 
 ### LICENSE
 Copyright (c) 2018 Lewis Tian. Licensed under the MIT license.

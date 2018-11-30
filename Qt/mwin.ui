@@ -154,7 +154,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QToolButton" name="toolButton">
+           <widget class="QToolButton" name="searchBtn">
             <property name="font">
              <font>
               <family>Microsoft YaHei</family>
@@ -169,6 +169,9 @@
             </property>
             <property name="text">
              <string>搜索</string>
+            </property>
+            <property name="shortcut">
+             <string>Return</string>
             </property>
            </widget>
           </item>
@@ -223,7 +226,7 @@
      <string>设置</string>
     </property>
     <addaction name="minSizeAction"/>
-    <addaction name="bgmPathAction"/>
+    <addaction name="bgiPathAction"/>
    </widget>
    <widget class="QMenu" name="About">
     <property name="title">
@@ -236,23 +239,51 @@
    <addaction name="About"/>
   </widget>
   <action name="minSizeAction">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/images/min.png</normaloff>:/images/min.png</iconset>
+   </property>
    <property name="text">
     <string>窗口最小尺寸</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+M</string>
+   </property>
   </action>
-  <action name="bgmPathAction">
+  <action name="bgiPathAction">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/images/bgm.png</normaloff>:/images/bgm.png</iconset>
+   </property>
    <property name="text">
     <string>背景图片</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+B</string>
+   </property>
   </action>
   <action name="authorAction">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/images/me.png</normaloff>:/images/me.png</iconset>
+   </property>
    <property name="text">
     <string>开发者</string>
    </property>
+   <property name="shortcut">
+    <string>Alt+A</string>
+   </property>
   </action>
   <action name="appAction">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/images/app.png</normaloff>:/images/app.png</iconset>
+   </property>
    <property name="text">
     <string>本程序</string>
+   </property>
+   <property name="shortcut">
+    <string>Shift+A</string>
    </property>
   </action>
  </widget>
