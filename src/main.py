@@ -31,23 +31,32 @@ class MWin(QMainWindow, Ui_MWin):
 	def __init__(self, parent=None):
 		super(MWin, self).__init__(parent)
 		self.setupUi(self)
-		try:
-			with open('style.qss') as f: 
-				style = f.read() # 读取样式表
-				self.setStyleSheet(style)
-		except:
-			print("open stylesheet error")
 
 		# 变量
 		self.mFlag = False
 		self.mPosition = None
 		self.bgiPath = '' # 背景图片的路径
 		self.key = None # 视频链接 id
+		self.dlpath = 'download' # 下载目录
 		self.vRetrieval = VideoRetrieval()
+		self.vRetrieval.done.connect(self.resolveInfoDone)
+		self.vRetrieval.error.connect(self.errorHappened)
+
 
 		self.setLogo()
 		self.setBackgroundImage(self.bgiPath)
 		self.connectSlots()
+
+		if not os.path.exists(self.dlpath):
+			os.mkdir(self.dlpath)
+
+		dlpath = f'下载目录:./{self.dlpath}'
+		self.dlPathBtn.setText(dlpath)
+		self.dlPathBtn.setToolTip(dlpath)
+
+		self.vtable.setColumnWidth(0, 50)
+		self.vtable.setColumnWidth(2, 50)
+		self.vtable.setColumnWidth(4, 180)
 
 	def resizeEvent(self, event):
 		'''窗口大小改变，背景图的大小也要改变
@@ -69,6 +78,34 @@ class MWin(QMainWindow, Ui_MWin):
 			
 	def mouseReleaseEvent(self, QMouseEvent):
 		self.mFlag = False
+
+	def connectSlots(self):
+		'''关联所有信号槽'''
+		# 文件菜单下 Action
+		self.vPageAction.triggered.connect(lambda: self.changePage(1))
+		self.pPageAction.triggered.connect(lambda: self.changePage(2))
+		self.exitAction.triggered.connect(QCoreApplication.quit)
+		
+		# 设置菜单下 Action
+		self.minSizeAction.triggered.connect(self.modifyMinSize)
+		self.bgiPathAction.triggered.connect(self.modifyBGIPath)
+		self.downloadPathaction.triggered.connect(self.modifyDLPath)
+
+		# 关于下的 Action
+		self.authorAction.triggered.connect(lambda: QDesktopServices.openUrl(QUrl('https://github.com/LewisTian')))
+		self.appAction.triggered.connect(lambda: QDesktopServices.openUrl(QUrl('https://github.com/LewisTian/bili-box')))
+
+		# 按钮
+		self.searchBtn.clicked.connect(self.resolveInput)
+		self.dlPathBtn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(self.dlpath)))
+		self.v2homeBtn.clicked.connect(self.toHome)
+		self.vdownloadBtn.clicked.connect(self.download)
+		self.dlAllBox.clicked.connect(self.isAllDownload)
+
+	def changePage(self, index):
+		'''修改当前页'''
+		if  0 < index < 3: self.stackedWidget.setCurrentIndex(index)
+
 
 	def setLogo(self):
 		'''根据季节来更换logo(当前只有秋冬的;3)'''
@@ -125,18 +162,7 @@ class MWin(QMainWindow, Ui_MWin):
 		except Exception as e:
 			return None
 
-	def connectSlots(self):
-		'''关联所有信号槽'''
-		# 设置菜单下 Action
-		self.minSizeAction.triggered.connect(self.modifyMinSize)
-		self.bgiPathAction.triggered.connect(self.modifyBGIPath)
-
-		# 关于下的 Action
-		self.authorAction.triggered.connect(lambda: QDesktopServices.openUrl(QUrl('https://github.com/LewisTian')))
-		self.appAction.triggered.connect(lambda: QDesktopServices.openUrl(QUrl('https://github.com/LewisTian/bili-box')))
-
-		# 按钮
-		self.searchBtn.clicked.connect(self.resolveInput)
+	
 
 	def modifyMinSize(self):
 		'''修改窗口的最小尺寸（默认是(960, 540)）'''
@@ -175,6 +201,14 @@ class MWin(QMainWindow, Ui_MWin):
 		if filename != '':
 			self.setBackgroundImage(filename)
 
+	def modifyDLPath(self):
+		dlpath = QFileDialog.getExistingDirectory(self, '选择下载路径', ".")
+		if not dlpath: return
+		self.dlpath = dlpath
+		dlpath = f'下载目录:{self.dlpath}'
+		self.dlPathBtn.setText(dlpath)
+		self.dlPathBtn.setToolTip(dlpath)
+
 	def resolveInput(self):
 		index = self.comboBoxHome.currentIndex()
 		text = self.lineEditHome.text()
@@ -187,9 +221,9 @@ class MWin(QMainWindow, Ui_MWin):
 				'''避免重复请求'''
 				return
 			self.key = key
-			self.request()
-			# self.vRetrieval.url = f'https://www.bilibili.com/video/av{self.key}'
-			# self.vRetrieval.start()
+			# self.request()
+			self.vRetrieval.key = self.key
+			self.vRetrieval.start()
 		elif index == 1:
 			pass
 		else:
@@ -211,6 +245,88 @@ class MWin(QMainWindow, Ui_MWin):
 		else:
 			pass
 	
+	def resolveInfoDone(self, info):
+		'''解析线程完成返回相关信息
+		info：序号 分p标题 标题 时长 大小 链接
+		'''
+		self.lists = info
+		self.stackedWidget.setCurrentIndex(1)
+		
+		row = self.vtable.rowCount()
+		self.vtable.insertRow(row)
+		self.vtable.setItem(row, 0, QTableWidgetItem(str(row+1)))
+		self.vtable.setItem(row, 1, QTableWidgetItem(info[1]))
+		self.vtable.setItem(row, 2, QTableWidgetItem(info[3]))
+		self.vtable.setItem(row, 3, QTableWidgetItem(f'{info[4]}M'))
+		qpb = QProgressBar()
+		qpb.setValue(0)
+		self.vtable.setCellWidget(row, 4, qpb)
+		self.vtable.setItem(row, 5, QTableWidgetItem(f'0/{len(info[-1])}'))
+		self.vtable.setItem(row, 6, QTableWidgetItem(info[2]))
+		for x in range(7):
+			try:
+				self.vtable.item(row, x).setTextAlignment(Qt.AlignCenter)
+			except Exception as e:
+				print(x)
+
+	def errorHappened(self):
+		QMessageBox.warning(self, '嗶哩嗶哩盒子©Lewis Tian', '发生了一个错误，请重试...', QMessageBox.Ok)
+		
+
+	def toHome(self):
+		'''回首页'''
+		self.stackedWidget.setCurrentIndex(0)
+
+	def isAllDownload(self):
+		'''是否下载全部视频'''
+		if self.dlAllBox.isChecked():
+			self.vtable.setRangeSelected(
+					QTableWidgetSelectionRange(0, 0, self.vtable.rowCount()-1, self.vtable.columnCount()-1), 
+					True)
+
+	def download(self):
+		'''分发下载视频视频'''
+		rows = [x for x in range(self.vtable.rowCount()) if self.vtable.item(x, 0).isSelected()]
+		if not rows: return
+
+
+class VideoRetrieval(QThread):
+	'''获取视频下载链接'''
+	done = pyqtSignal(list)
+	error = pyqtSignal()
+	def __init__(self):
+		super(VideoRetrieval, self).__init__()
+
+	def run(self):        
+		url = f'https://www.bilibili.com/video/av{self.key}'
+		r = requests.get(url, headers = headers).text
+		title = re.findall(r'<h1 title="(.*?)">', r)[0].replace(' ','-')
+		self.title = title
+		cover = re.findall(r'<meta.*?itemprop="image" content="(.*?)"/><meta', r)
+		self.cover = cover
+		pages = re.findall(r'page":(.*?),"from":"vupload","part":"(.*?)","duration":', r) 
+		if not pages:
+			'''可能是番剧、电影啥的无法解析出来'''
+			self.error.emit()
+		with futures.ThreadPoolExecutor(32) as executor:
+			executor.map(self.resolve, pages)
+
+	def resolve(self, page):
+		'''获取每个分p的视频链接
+		page: (index, page title)
+		'''
+		url = f'https://www.bilibili.com/video/av{self.key}?p={page[0]}'
+		r = requests.get(url, headers=headers).text
+		regex = '"order":(.*?),"length":(.*?),"size":(.*?),.*?"url":"(.*?)"'
+		result = re.findall(regex, r) # 序号 时长 大小 链接
+		time = str(sum([int(i[1]) for i in result])//60000) +":"+str(int((sum([int(i[1]) for i in result])%60000)//1000))
+		size = round(sum([int(i[2]) for i in result])/1024/1024, 1)
+		url = [i[3] for i in result]
+		ret = list(page) +[self.title, time, size, url] # 序号 分p标题 标题 时长 大小 链接
+		print(ret)
+		self.done.emit(ret)
+
+
 def mainSplash():
 	'''启动画面'''
 	app = QApplication(sys.argv)

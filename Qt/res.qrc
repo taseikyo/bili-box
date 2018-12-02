@@ -6,5 +6,11 @@
         <file>bgm.png</file>
         <file>me.png</file>
         <file>min.png</file>
+        <file>Loading.gif</file>
+        <file>Loading.png</file>
+        <file>downloadpath.png</file>
+        <file>home.png</file>
+        <file>v.png</file>
+        <file>car.png</file>
     </qresource>
 </RCC>
