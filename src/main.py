@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Date    : 2018-11-29 19:04:30
+# @Date	: 2018-11-29 19:04:30
 # @Author  : Lewis Tian (chtian@hust.edu.cn)
-# @Link    : https://lewistian.github.io
+# @Link	: https://lewistian.github.io
 # @Version : Python3.7
 
 from PyQt5.QtWidgets import *
@@ -10,6 +10,9 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from mwin import Ui_MWin
 from concurrent import futures
+from contextlib import closing
+from glob import glob
+from urllib import request as urequest
 import sys
 import os
 import shutil
@@ -17,6 +20,8 @@ import time
 import datetime
 import requests
 import re
+import threading
+import ssl
 
 MAX_WIDTH = 1920
 MAX_HEIGHT = 1080
@@ -38,10 +43,16 @@ class MWin(QMainWindow, Ui_MWin):
 		self.bgiPath = '' # 背景图片的路径
 		self.key = None # 视频链接 id
 		self.dlpath = 'download' # 下载目录
+		self.lists = [] # 获取的信息
+
 		self.vRetrieval = VideoRetrieval()
 		self.vRetrieval.done.connect(self.resolveInfoDone)
 		self.vRetrieval.error.connect(self.errorHappened)
 
+		self.vDownlaod = VideoDownlaod()
+		self.vDownlaod.updateProgress.connect(self.updateProgress)
+		self.vDownlaod.updateSlice.connect(self.updateSlice)
+		self.vDownlaod.dlpath = self.dlpath
 
 		self.setLogo()
 		self.setBackgroundImage(self.bgiPath)
@@ -50,13 +61,15 @@ class MWin(QMainWindow, Ui_MWin):
 		if not os.path.exists(self.dlpath):
 			os.mkdir(self.dlpath)
 
-		dlpath = f'下载目录:./{self.dlpath}'
+		dlpath = f'下载目录: {self.dlpath}'
 		self.dlPathBtn.setText(dlpath)
 		self.dlPathBtn.setToolTip(dlpath)
 
 		self.vtable.setColumnWidth(0, 50)
+		self.vtable.setColumnWidth(1, 150)
 		self.vtable.setColumnWidth(2, 50)
 		self.vtable.setColumnWidth(4, 180)
+		self.vtable.setColumnWidth(5, 50)
 
 	def resizeEvent(self, event):
 		'''窗口大小改变，背景图的大小也要改变
@@ -106,7 +119,6 @@ class MWin(QMainWindow, Ui_MWin):
 		'''修改当前页'''
 		if  0 < index < 3: self.stackedWidget.setCurrentIndex(index)
 
-
 	def setLogo(self):
 		'''根据季节来更换logo(当前只有秋冬的;3)'''
 		month = datetime.datetime.now().month
@@ -132,7 +144,6 @@ class MWin(QMainWindow, Ui_MWin):
 			bgi = os.listdir('images/background')[0]
 			os.remove(f'images/background/{bgi}')
 			_, ext = os.path.splitext(path)
-			print(ext)
 			self.bgiPath = f'images/background/background{ext}'
 			shutil.copyfile(path, self.bgiPath)
 			self.modifySetting(self.bgiPath, 0)
@@ -161,9 +172,7 @@ class MWin(QMainWindow, Ui_MWin):
 				f.write(''.join(lines))
 		except Exception as e:
 			return None
-
 	
-
 	def modifyMinSize(self):
 		'''修改窗口的最小尺寸（默认是(960, 540)）'''
 		text, okPressed = QInputDialog.getText(self, '修改窗口尺寸', '输入尺寸:', QLineEdit.Normal, "输入两个数字 以空格分割")
@@ -182,8 +191,8 @@ class MWin(QMainWindow, Ui_MWin):
 					lines = f.readlines()
 			except Exception as e:
 				return
-			template1 = f'        MWin.setMinimumSize(QtCore.QSize({x}, {y}))\n'
-			template2 = f'        MWin.resize({x}, {y})\n'
+			template1 = f'		MWin.setMinimumSize(QtCore.QSize({x}, {y}))\n'
+			template2 = f'		MWin.resize({x}, {y})\n'
 			for i, x in enumerate(lines):
 				if x.find('resize') > 0:
 					lines[i] = template2
@@ -215,7 +224,10 @@ class MWin(QMainWindow, Ui_MWin):
 		if text.strip(' ') == '':
 			return
 		if index == 0:
-			key = re.findall(r'av(\d+)', text)[0]
+			try:
+				key = re.findall(r'av(\d+)', text)[0]
+			except Exception as e:
+				return
 			if not key: return
 			if self.key and self.key == key:
 				'''避免重复请求'''
@@ -249,7 +261,6 @@ class MWin(QMainWindow, Ui_MWin):
 		'''解析线程完成返回相关信息
 		info：序号 分p标题 标题 时长 大小 链接
 		'''
-		self.lists = info
 		self.stackedWidget.setCurrentIndex(1)
 		
 		row = self.vtable.rowCount()
@@ -267,7 +278,9 @@ class MWin(QMainWindow, Ui_MWin):
 			try:
 				self.vtable.item(row, x).setTextAlignment(Qt.AlignCenter)
 			except Exception as e:
-				print(x)
+				pass # 显示进度条的列会报错
+
+		self.lists.append(info[-1])
 
 	def errorHappened(self):
 		QMessageBox.warning(self, '嗶哩嗶哩盒子©Lewis Tian', '发生了一个错误，请重试...', QMessageBox.Ok)
@@ -281,14 +294,28 @@ class MWin(QMainWindow, Ui_MWin):
 		'''是否下载全部视频'''
 		if self.dlAllBox.isChecked():
 			self.vtable.setRangeSelected(
-					QTableWidgetSelectionRange(0, 0, self.vtable.rowCount()-1, self.vtable.columnCount()-1), 
+					QTableWidgetSelectionRange(0, 0, 
+						self.vtable.rowCount()-1, self.vtable.columnCount()-1), 
 					True)
 
 	def download(self):
 		'''分发下载视频视频'''
 		rows = [x for x in range(self.vtable.rowCount()) if self.vtable.item(x, 0).isSelected()]
 		if not rows: return
+		for x in rows[::-1]:
+			val = self.vtable.cellWidget(x, 4).value()
+			if val == 100: rows.remove(x)
+		self.vDownlaod.num = rows
+		self.vDownlaod.urls = [self.lists[x] for x in rows]
+		self.vDownlaod.start()
 
+	def updateProgress(self, row, percent):
+		'''更新进度条'''
+		self.vtable.cellWidget(row, 4).setValue(percent)
+
+	def updateSlice(self, row, p):
+		slices = self.vtable.item(row, 5).text().split('/')[1]
+		self.vtable.setItem(row, 5, QTableWidgetItem(f'{p}/{slices}'))
 
 class VideoRetrieval(QThread):
 	'''获取视频下载链接'''
@@ -297,7 +324,7 @@ class VideoRetrieval(QThread):
 	def __init__(self):
 		super(VideoRetrieval, self).__init__()
 
-	def run(self):        
+	def run(self):		
 		url = f'https://www.bilibili.com/video/av{self.key}'
 		r = requests.get(url, headers = headers).text
 		title = re.findall(r'<h1 title="(.*?)">', r)[0].replace(' ','-')
@@ -326,6 +353,73 @@ class VideoRetrieval(QThread):
 		print(ret)
 		self.done.emit(ret)
 
+
+class VideoDownlaod(QThread):
+	'''使用多线程下载视频'''
+	updateProgress = pyqtSignal(int, int) # row percent
+	updateSlice = pyqtSignal(int, str) # row, current slice
+	def __init__(self):
+		super(VideoDownlaod, self).__init__()
+
+	def run(self):
+		'''self.urls是个二维数组：多个视频，多个分p'''
+		self.percent = 0
+		threads = []
+		for i, j in enumerate(self.num):
+			t = threading.Thread(target=self.download, args=(self.urls[i], ), name=str(j))
+			threads.append(t)
+		
+		self.threadLock = threading.Lock()
+		for j in threads:
+			j.start()
+
+	def download(self, url):
+		ssl._create_default_https_context = ssl._create_unverified_context
+		opener = urequest.build_opener()
+		opener.addheaders = [
+				('Host', 'tx.acgvideo.com'),
+				('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36',),
+				('Accept', '*/*'),
+				('Accept-Language', 'en-US,en;q=0.5'),
+				('Accept-Encoding', 'gzip, deflate, br'),
+				('Range', 'bytes=0-'),  # Range 的值要为 bytes=0- 才能下载完整视频
+				('Referer', 'https://www.bilibili.com/video/av14543079/'),
+				('Origin', 'https://www.bilibili.com'),
+				('Connection', 'keep-alive'),
+			]
+		urequest.install_opener(opener)
+
+		folder = self.dlpath + '/' + url[0].split('?')[0].split('/')[-1].split('-')[0]
+		for i, j in enumerate(url):
+			filename = j.split('?')[0].split('/')[-1]
+			print(f'path: {folder}/{filename}')
+			if not os.path.exists(folder):
+				os.mkdir(folder)
+			urequest.urlretrieve(j, filename=f'{folder}/{filename}', reporthook=self.report)
+			self.updateSlice.emit(int(threading.current_thread().name), str(i+1))
+		if len(url) > 1:
+			self.merge(folder)
+		
+	def report(self, count, blockSize, totalSize):
+		downloadedSize = count * blockSize
+		percent = int(downloadedSize * 100 / totalSize)
+		if not self.percent == percent:
+			self.percent = percent
+			self.updateProgress.emit(int(threading.current_thread().name), percent)
+
+	def merge(self, folder):
+		files = glob(folder+'/*.flv')
+		outlists = []
+		for i, x in enumerate(files):
+			outfile = f'{folder}/{i}.ts'
+			outlists.append(outfile)
+			print(x, outfile)
+			s = f'ffmpeg.exe -i {x} -vcodec copy -acodec copy -vbsf h264_mp4toannexb {outfile}'
+			os.system(s)
+		s = f'''ffmpeg.exe -i "concat:{'|'.join(outlists)}" -acodec copy -vcodec copy -absf aac_adtstoasc {folder}/{folder}.mp4'''
+		os.system(s)
+		for x in outlists:
+			os.remove(x)
 
 def mainSplash():
 	'''启动画面'''
