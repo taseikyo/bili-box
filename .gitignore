@@ -104,3 +104,4 @@ venv.bak/
 .mypy_cache/
 *.user
 *.cmd
+src/download/
