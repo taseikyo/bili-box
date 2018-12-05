@@ -12,5 +12,6 @@
         <file>home.png</file>
         <file>v.png</file>
         <file>car.png</file>
+        <file>fav.png</file>
     </qresource>
 </RCC>
