@@ -28,7 +28,7 @@ MAX_HEIGHT = 1080
 
 headers = {
 	'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36',
-	'Cookie': 'CURRENT_QUALITY=64; DedeUserID=227050458; '
+	'Cookie': 'CURRENT_QUALITY=80; DedeUserID=227050458;'
 }
 
 class MWin(QMainWindow, Ui_MWin):
@@ -97,6 +97,7 @@ class MWin(QMainWindow, Ui_MWin):
 		# 文件菜单下 Action
 		self.vPageAction.triggered.connect(lambda: self.changePage(1))
 		self.pPageAction.triggered.connect(lambda: self.changePage(2))
+		self.fPageAction.triggered.connect(lambda: self.changePage(2))
 		self.exitAction.triggered.connect(QCoreApplication.quit)
 		
 		# 设置菜单下 Action
@@ -238,6 +239,13 @@ class MWin(QMainWindow, Ui_MWin):
 			self.vRetrieval.start()
 		elif index == 1:
 			pass
+		elif index == 2:
+			try:
+				keys = re.findall(r'com/(\d+)/favlist\?fid=(\d+)', text)[0]
+				self.mid, self.fid = keys
+			except Exception as e:
+				return
+			self.request(index)
 		else:
 			pass
 
@@ -254,8 +262,18 @@ class MWin(QMainWindow, Ui_MWin):
 			# print(links)
 		elif btype == 1:
 			pass
+		elif btype == 2:
+			url = f'http://api.bilibili.com/x/space/fav/arc?vmid={self.mid}&ps=30&fid={self.fid}&tid=0&keyword=&pn={1}&order=fav_time&jsonp=jsonp'
+			print(url)
+			try:
+				r = requests.get(url, headers=headers).json()
+			except Exception as e:
+				print(e)
+				return
+			print(r)
 		else:
 			pass
+			
 	
 	def resolveInfoDone(self, info):
 		'''解析线程完成返回相关信息
@@ -353,7 +371,6 @@ class VideoRetrieval(QThread):
 		print(ret)
 		self.done.emit(ret)
 
-
 class VideoDownlaod(QThread):
 	'''使用多线程下载视频'''
 	updateProgress = pyqtSignal(int, int) # row percent
@@ -420,6 +437,9 @@ class VideoDownlaod(QThread):
 		os.system(s)
 		for x in outlists:
 			os.remove(x)
+
+
+
 
 def mainSplash():
 	'''启动画面'''
