@@ -105,3 +105,4 @@ venv.bak/
 *.user
 *.cmd
 src/download/
+src/cache

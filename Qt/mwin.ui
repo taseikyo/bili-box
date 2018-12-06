@@ -49,7 +49,7 @@
     <item>
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="home">
        <property name="font">
@@ -141,6 +141,11 @@
               <string>图片</string>
              </property>
             </item>
+            <item>
+             <property name="text">
+              <string>收藏</string>
+             </property>
+            </item>
            </widget>
           </item>
           <item>
@@ -216,6 +221,21 @@
       </widget>
       <widget class="QWidget" name="vpage">
        <layout class="QVBoxLayout" name="verticalLayout_3">
+        <property name="spacing">
+         <number>5</number>
+        </property>
+        <property name="leftMargin">
+         <number>5</number>
+        </property>
+        <property name="topMargin">
+         <number>5</number>
+        </property>
+        <property name="rightMargin">
+         <number>5</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
         <item>
          <widget class="QFrame" name="frame">
           <property name="frameShape">
@@ -260,6 +280,9 @@
              <property name="icon">
               <iconset resource="res.qrc">
                <normaloff>:/images/home.png</normaloff>:/images/home.png</iconset>
+             </property>
+             <property name="shortcut">
+              <string>Ctrl+Z</string>
              </property>
              <property name="toolButtonStyle">
               <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -377,7 +400,197 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="ppage"/>
+      <widget class="QWidget" name="ppage">
+       <layout class="QVBoxLayout" name="verticalLayout" stretch="1,9">
+        <property name="spacing">
+         <number>5</number>
+        </property>
+        <property name="leftMargin">
+         <number>5</number>
+        </property>
+        <property name="topMargin">
+         <number>5</number>
+        </property>
+        <property name="rightMargin">
+         <number>5</number>
+        </property>
+        <property name="bottomMargin">
+         <number>5</number>
+        </property>
+        <item>
+         <widget class="QFrame" name="pframe">
+          <property name="frameShape">
+           <enum>QFrame::StyledPanel</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
+          <layout class="QHBoxLayout" name="horizontalLayout_4">
+           <item>
+            <widget class="QLabel" name="pavator">
+             <property name="minimumSize">
+              <size>
+               <width>50</width>
+               <height>50</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>200</width>
+               <height>200</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>无头像</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_5">
+             <item>
+              <spacer name="verticalSpacer">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QLabel" name="pname">
+               <property name="text">
+                <string>九卿__</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <spacer name="hspace4">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>807</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="pgroup">
+          <property name="title">
+           <string>相册</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_4">
+           <property name="spacing">
+            <number>0</number>
+           </property>
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QTableWidget" name="ptable">
+             <property name="selectionBehavior">
+              <enum>QAbstractItemView::SelectRows</enum>
+             </property>
+             <attribute name="horizontalHeaderVisible">
+              <bool>true</bool>
+             </attribute>
+             <attribute name="horizontalHeaderStretchLastSection">
+              <bool>true</bool>
+             </attribute>
+             <attribute name="verticalHeaderVisible">
+              <bool>false</bool>
+             </attribute>
+             <column>
+              <property name="text">
+               <string>描述</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>上传时间</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>浏览数</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>收藏数</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>点赞数</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>图片数</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>链接</string>
+              </property>
+             </column>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="fpage">
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <property name="spacing">
+         <number>5</number>
+        </property>
+        <property name="leftMargin">
+         <number>5</number>
+        </property>
+        <property name="topMargin">
+         <number>5</number>
+        </property>
+        <property name="rightMargin">
+         <number>5</number>
+        </property>
+        <property name="bottomMargin">
+         <number>5</number>
+        </property>
+        <item>
+         <widget class="QGroupBox" name="fgroup">
+          <property name="styleSheet">
+           <string notr="true">background:white</string>
+          </property>
+          <property name="title">
+           <string>当前页：1</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
      </widget>
     </item>
    </layout>
@@ -413,6 +626,7 @@
     </property>
     <addaction name="vPageAction"/>
     <addaction name="pPageAction"/>
+    <addaction name="fPageAction"/>
     <addaction name="exitAction"/>
    </widget>
    <addaction name="menu"/>
@@ -464,7 +678,7 @@
     <string>本程序</string>
    </property>
    <property name="shortcut">
-    <string>Shift+A</string>
+    <string>Ctrl+H</string>
    </property>
   </action>
   <action name="downloadPathaction">
@@ -513,6 +727,18 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+W</string>
+   </property>
+  </action>
+  <action name="fPageAction">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/images/fav.png</normaloff>:/images/fav.png</iconset>
+   </property>
+   <property name="text">
+    <string>收藏页</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
    </property>
   </action>
  </widget>

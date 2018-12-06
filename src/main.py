@@ -13,6 +13,7 @@ from concurrent import futures
 from contextlib import closing
 from glob import glob
 from urllib import request as urequest
+from copy import deepcopy
 import sys
 import os
 import shutil
@@ -43,7 +44,8 @@ class MWin(QMainWindow, Ui_MWin):
 		self.bgiPath = '' # 背景图片的路径
 		self.key = None # 视频链接 id
 		self.dlpath = 'download' # 下载目录
-		self.lists = [] # 获取的信息
+		self.vlists = [] # 获取的视频信息
+		self.plists = [] # 获取的图片信息
 
 		self.vRetrieval = VideoRetrieval()
 		self.vRetrieval.done.connect(self.resolveInfoDone)
@@ -54,12 +56,22 @@ class MWin(QMainWindow, Ui_MWin):
 		self.vDownlaod.updateSlice.connect(self.updateSlice)
 		self.vDownlaod.dlpath = self.dlpath
 
+		self.pRetrieval = PictureRetrieval()
+		self.pRetrieval.done.connect(self.resolveInfoDone)
+		self.pRetrieval.user.connect(self.resolveUserInfoDone)
+
 		self.setLogo()
 		self.setBackgroundImage(self.bgiPath)
 		self.connectSlots()
 
 		if not os.path.exists(self.dlpath):
 			os.mkdir(self.dlpath)
+
+		if not os.path.exists('cache'):
+			os.mkdir('cache')
+
+		if not os.path.exists('cache/avator'):
+			os.mkdir('cache/avator')
 
 		dlpath = f'下载目录: {self.dlpath}'
 		self.dlPathBtn.setText(dlpath)
@@ -238,7 +250,13 @@ class MWin(QMainWindow, Ui_MWin):
 			self.vRetrieval.key = self.key
 			self.vRetrieval.start()
 		elif index == 1:
-			pass
+			try:
+				self.mid = re.findall(r'com/(\d+)', text)[0]
+			except Exception as e:
+				return
+			# self.request(index)
+			self.pRetrieval.mid = self.mid
+			self.pRetrieval.start()
 		elif index == 2:
 			try:
 				keys = re.findall(r'com/(\d+)/favlist\?fid=(\d+)', text)[0]
@@ -261,12 +279,43 @@ class MWin(QMainWindow, Ui_MWin):
 			# links = re.findall(zz, r.text)
 			# print(links)
 		elif btype == 1:
-			pass
+			page = 0
+			next_offset = 0
+			has_more = 1
+			while has_more:
+				url = f'http://api.vc.bilibili.com/link_draw/v1/doc/ones?poster_uid={self.mid}&page_size=20&next_offset={next_offset}'
+				# url = f'http://api.vc.bilibili.com/link_draw/v1/doc/doc_list?uid={self.mid}&page_num={page}&page_size=30&biz=all'
+				print(url)
+				try:
+					r = requests.get(url, headers=headers).json()
+				except Exception as e:
+					print(e)
+					return
+				data = r['data']
+				has_more = data['has_more']
+				next_offset = data['next_offset']
+				items = data['items']
+				for x in items:
+					description = x['description']
+					upload_time = x['upload_time']
+					view_count = x['view_count']
+					collect_count = x['collect_count']
+					like_count = x['like_count']
+					pictures = x['pictures']
+					print(description, upload_time, view_count, collect_count, like_count)
+					for i in pictures:
+						print(i['img_src'])
 		elif btype == 2:
+			fheaders = deepcopy(headers)
+			try:
+				with open('Cookie.txt') as f:
+					fheaders['Cookie'] = f.read()
+			except Exception as e:
+				pass
 			url = f'http://api.bilibili.com/x/space/fav/arc?vmid={self.mid}&ps=30&fid={self.fid}&tid=0&keyword=&pn={1}&order=fav_time&jsonp=jsonp'
 			print(url)
 			try:
-				r = requests.get(url, headers=headers).json()
+				r = requests.get(url, headers=fheaders).json()
 			except Exception as e:
 				print(e)
 				return
@@ -275,34 +324,54 @@ class MWin(QMainWindow, Ui_MWin):
 			pass
 			
 	
-	def resolveInfoDone(self, info):
+	def resolveInfoDone(self, btype, info):
 		'''解析线程完成返回相关信息
-		info：序号 分p标题 标题 时长 大小 链接
+		btype 类型 1 => 视频 2=> 图片
+		1: info：序号 分p标题 标题 时长 大小 链接
+		2: info 列表：[description, upload_time, view_count, collect_count, like_count, pics]
 		'''
-		self.stackedWidget.setCurrentIndex(1)
-		
-		row = self.vtable.rowCount()
-		self.vtable.insertRow(row)
-		self.vtable.setItem(row, 0, QTableWidgetItem(str(row+1)))
-		self.vtable.setItem(row, 1, QTableWidgetItem(info[1]))
-		self.vtable.setItem(row, 2, QTableWidgetItem(info[3]))
-		self.vtable.setItem(row, 3, QTableWidgetItem(f'{info[4]}M'))
-		qpb = QProgressBar()
-		qpb.setValue(0)
-		self.vtable.setCellWidget(row, 4, qpb)
-		self.vtable.setItem(row, 5, QTableWidgetItem(f'0/{len(info[-1])}'))
-		self.vtable.setItem(row, 6, QTableWidgetItem(info[2]))
-		for x in range(7):
-			try:
-				self.vtable.item(row, x).setTextAlignment(Qt.AlignCenter)
-			except Exception as e:
-				pass # 显示进度条的列会报错
+		self.stackedWidget.setCurrentIndex(btype)
+		if btype == 1:
+			row = self.vtable.rowCount()
+			self.vtable.insertRow(row)
+			self.vtable.setItem(row, 0, QTableWidgetItem(str(row+1)))
+			self.vtable.setItem(row, 1, QTableWidgetItem(info[1]))
+			self.vtable.setItem(row, 2, QTableWidgetItem(info[3]))
+			self.vtable.setItem(row, 3, QTableWidgetItem(f'{info[4]}M'))
+			qpb = QProgressBar()
+			qpb.setValue(0)
+			self.vtable.setCellWidget(row, 4, qpb)
+			self.vtable.setItem(row, 5, QTableWidgetItem(f'0/{len(info[-1])}'))
+			self.vtable.setItem(row, 6, QTableWidgetItem(info[2]))
+			for x in range(7):
+				try:
+					self.vtable.item(row, x).setTextAlignment(Qt.AlignCenter)
+				except Exception as e:
+					pass # 显示进度条的列会报错
+		elif btype == 2:
+			for i in info:
+				row = self.ptable.rowCount()
+				self.ptable.insertRow(row)
+				for x in range(5):
+					self.ptable.setItem(row, x, QTableWidgetItem(i[x]))
+					self.ptable.item(row, x).setTextAlignment(Qt.AlignCenter)
+				self.ptable.setItem(row, 5, QTableWidgetItem(str(len(i[5]))))
+				self.ptable.item(row, x).setTextAlignment(Qt.AlignCenter)
+				self.ptable.setItem(row, 6, QTableWidgetItem(';'.join(i[5])))
+		else:
+			pass
 
-		self.lists.append(info[-1])
+		self.vlists.append(info[-1])
+
+	def resolveUserInfoDone(self, info):
+		pix = QPixmap(info[1])
+		self.pavator.setPixmap(pix)
+		self.pavator.setScaledContents(True)
+		self.pavator.setToolTip(info[0])
+		self.pname.setText(info[0])
 
 	def errorHappened(self):
 		QMessageBox.warning(self, '嗶哩嗶哩盒子©Lewis Tian', '发生了一个错误，请重试...', QMessageBox.Ok)
-		
 
 	def toHome(self):
 		'''回首页'''
@@ -324,7 +393,7 @@ class MWin(QMainWindow, Ui_MWin):
 			val = self.vtable.cellWidget(x, 4).value()
 			if val == 100: rows.remove(x)
 		self.vDownlaod.num = rows
-		self.vDownlaod.urls = [self.lists[x] for x in rows]
+		self.vDownlaod.urls = [self.vlists[x] for x in rows]
 		self.vDownlaod.start()
 
 	def updateProgress(self, row, percent):
@@ -337,7 +406,7 @@ class MWin(QMainWindow, Ui_MWin):
 
 class VideoRetrieval(QThread):
 	'''获取视频下载链接'''
-	done = pyqtSignal(list)
+	done = pyqtSignal(int, list)
 	error = pyqtSignal()
 	def __init__(self):
 		super(VideoRetrieval, self).__init__()
@@ -367,9 +436,8 @@ class VideoRetrieval(QThread):
 		time = str(sum([int(i[1]) for i in result])//60000) +":"+str(int((sum([int(i[1]) for i in result])%60000)//1000))
 		size = round(sum([int(i[2]) for i in result])/1024/1024, 1)
 		url = [i[3] for i in result]
-		ret = list(page) +[self.title, time, size, url] # 序号 分p标题 标题 时长 大小 链接
-		print(ret)
-		self.done.emit(ret)
+		ret = list(page) + [self.title, time, size, url] # [类型] 序号 分p标题 标题 时长 大小 链接
+		self.done.emit(1, ret)
 
 class VideoDownlaod(QThread):
 	'''使用多线程下载视频'''
@@ -438,8 +506,58 @@ class VideoDownlaod(QThread):
 		for x in outlists:
 			os.remove(x)
 
+class PictureRetrieval(QThread):
+	'''获取图片信息'''
+	done = pyqtSignal(int, list)
+	user = pyqtSignal(list)
+	error = pyqtSignal()
+	def __init__(self):
+		super(PictureRetrieval, self).__init__()
 
+	def run(self):
+		page = 0
+		next_offset = 0
+		has_more = 1
+		set_user = False
+		while has_more:
+			plist = []
+			url = f'http://api.vc.bilibili.com/link_draw/v1/doc/ones?poster_uid={self.mid}&page_size=20&next_offset={next_offset}'
+			# url = f'http://api.vc.bilibili.com/link_draw/v1/doc/doc_list?uid={self.mid}&page_num={page}&page_size=30&biz=all'
+			try:
+				r = requests.get(url, headers=headers).json()
+			except Exception as e:
+				print(e)
+				return
+			data = r['data']
+			has_more = data['has_more']
+			next_offset = data['next_offset']
+			items = data['items']
+			if not set_user:
+				self.getUserAvator(data['user'])
+				set_user = True
+			for x in items:
+				p = []
+				description = x['description']
+				upload_time = x['upload_time']
+				view_count = x['view_count']
+				collect_count = x['collect_count']
+				like_count = x['like_count']
+				pictures = x['pictures']
+				pics = [i['img_src'] for i in pictures]
+				# print(description, upload_time, view_count, collect_count, like_count)
+				p = [description, upload_time, str(view_count), str(collect_count), str(like_count), pics]
+				plist.append(p)
+			self.done.emit(2, plist)
+		print('over')
 
+	def getUserAvator(self, info):
+		name = info['head_url'].split('/')[-1]
+		path = f'cache/avator/{name}'
+		if not os.path.exists(path):
+			r = requests.get(info['head_url'], headers = headers)
+			with open(path, 'wb') as f:
+				f.write(r.content)
+		self.user.emit([info['name'], path])
 
 def mainSplash():
 	'''启动画面'''
