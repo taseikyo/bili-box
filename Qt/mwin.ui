@@ -49,7 +49,7 @@
     <item>
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="home">
        <property name="font">
@@ -160,10 +160,16 @@
           </item>
           <item>
            <widget class="QToolButton" name="searchBtn">
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="font">
              <font>
               <family>Microsoft YaHei</family>
-              <pointsize>11</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="cursor">
@@ -173,7 +179,7 @@
              <string>搜索</string>
             </property>
             <property name="text">
-             <string>搜索</string>
+             <string>搜 索</string>
             </property>
             <property name="iconSize">
              <size>
@@ -261,41 +267,17 @@
             <number>5</number>
            </property>
            <item>
-            <widget class="QToolButton" name="v2homeBtn">
+            <widget class="QToolButton" name="vdlPathBtn">
              <property name="minimumSize">
               <size>
                <width>0</width>
                <height>32</height>
               </size>
              </property>
-             <property name="cursor">
-              <cursorShape>PointingHandCursor</cursorShape>
-             </property>
-             <property name="toolTip">
-              <string>回首页</string>
-             </property>
-             <property name="text">
-              <string>首页</string>
-             </property>
-             <property name="icon">
-              <iconset resource="res.qrc">
-               <normaloff>:/images/home.png</normaloff>:/images/home.png</iconset>
-             </property>
-             <property name="shortcut">
-              <string>Ctrl+Z</string>
-             </property>
-             <property name="toolButtonStyle">
-              <enum>Qt::ToolButtonTextBesideIcon</enum>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QToolButton" name="dlPathBtn">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>32</height>
-              </size>
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+              </font>
              </property>
              <property name="cursor">
               <cursorShape>PointingHandCursor</cursorShape>
@@ -326,6 +308,11 @@
                <height>32</height>
               </size>
              </property>
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+              </font>
+             </property>
              <property name="cursor">
               <cursorShape>PointingHandCursor</cursorShape>
              </property>
@@ -333,12 +320,17 @@
               <string>下载选中行的视频</string>
              </property>
              <property name="text">
-              <string>下载</string>
+              <string>下 载</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QCheckBox" name="dlAllBox">
+            <widget class="QCheckBox" name="vdlAllBox">
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+              </font>
+             </property>
              <property name="toolTip">
               <string>下载全部视频</string>
              </property>
@@ -352,6 +344,9 @@
         </item>
         <item>
          <widget class="QTableWidget" name="vtable">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
           <property name="selectionBehavior">
            <enum>QAbstractItemView::SelectRows</enum>
           </property>
@@ -401,7 +396,7 @@
        </layout>
       </widget>
       <widget class="QWidget" name="ppage">
-       <layout class="QVBoxLayout" name="verticalLayout" stretch="1,9">
+       <layout class="QVBoxLayout" name="verticalLayout" stretch="0,9">
         <property name="spacing">
          <number>5</number>
         </property>
@@ -425,19 +420,19 @@
           <property name="frameShadow">
            <enum>QFrame::Raised</enum>
           </property>
-          <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <layout class="QHBoxLayout" name="horizontalLayout_5">
            <item>
             <widget class="QLabel" name="pavator">
              <property name="minimumSize">
               <size>
-               <width>50</width>
-               <height>50</height>
+               <width>64</width>
+               <height>64</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
-               <width>200</width>
-               <height>200</height>
+               <width>64</width>
+               <height>64</height>
               </size>
              </property>
              <property name="text">
@@ -462,6 +457,11 @@
              </item>
              <item>
               <widget class="QLabel" name="pname">
+               <property name="font">
+                <font>
+                 <pointsize>16</pointsize>
+                </font>
+               </property>
                <property name="text">
                 <string>九卿__</string>
                </property>
@@ -482,6 +482,60 @@
              </property>
             </spacer>
            </item>
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_6">
+             <item>
+              <spacer name="verticalSpacer_2">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_4">
+               <item>
+                <widget class="QToolButton" name="pdownloadBtn">
+                 <property name="minimumSize">
+                  <size>
+                   <width>80</width>
+                   <height>32</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <pointsize>12</pointsize>
+                  </font>
+                 </property>
+                 <property name="cursor">
+                  <cursorShape>PointingHandCursor</cursorShape>
+                 </property>
+                 <property name="text">
+                  <string>下 载</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="pdlAllBox">
+                 <property name="font">
+                  <font>
+                   <pointsize>12</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>下载全部</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </item>
           </layout>
          </widget>
         </item>
@@ -492,27 +546,30 @@
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_4">
            <property name="spacing">
-            <number>0</number>
+            <number>5</number>
            </property>
            <property name="leftMargin">
-            <number>0</number>
+            <number>5</number>
            </property>
            <property name="topMargin">
-            <number>0</number>
+            <number>5</number>
            </property>
            <property name="rightMargin">
-            <number>0</number>
+            <number>5</number>
            </property>
            <property name="bottomMargin">
-            <number>0</number>
+            <number>5</number>
            </property>
            <item>
             <widget class="QTableWidget" name="ptable">
+             <property name="alternatingRowColors">
+              <bool>true</bool>
+             </property>
              <property name="selectionBehavior">
               <enum>QAbstractItemView::SelectRows</enum>
              </property>
              <attribute name="horizontalHeaderVisible">
-              <bool>true</bool>
+              <bool>false</bool>
              </attribute>
              <attribute name="horizontalHeaderStretchLastSection">
               <bool>true</bool>
@@ -624,6 +681,7 @@
     <property name="title">
      <string>文件</string>
     </property>
+    <addaction name="hPageAction"/>
     <addaction name="vPageAction"/>
     <addaction name="pPageAction"/>
     <addaction name="fPageAction"/>
@@ -678,7 +736,7 @@
     <string>本程序</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+H</string>
+    <string>Shift+H</string>
    </property>
   </action>
   <action name="downloadPathaction">
@@ -739,6 +797,18 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+F</string>
+   </property>
+  </action>
+  <action name="hPageAction">
+   <property name="icon">
+    <iconset resource="res.qrc">
+     <normaloff>:/images/bililogo</normaloff>:/images/bililogo</iconset>
+   </property>
+   <property name="text">
+    <string>首页</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+H</string>
    </property>
   </action>
  </widget>

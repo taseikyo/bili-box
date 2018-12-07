@@ -60,12 +60,18 @@ class MWin(QMainWindow, Ui_MWin):
 		self.pRetrieval.done.connect(self.resolveInfoDone)
 		self.pRetrieval.user.connect(self.resolveUserInfoDone)
 
+		self.pDownlaod = PictureDownlaod()
+		self.pDownlaod.dlpath = self.dlpath
+
 		self.setLogo()
 		self.setBackgroundImage(self.bgiPath)
 		self.connectSlots()
 
 		if not os.path.exists(self.dlpath):
 			os.mkdir(self.dlpath)
+
+		if not os.path.exists(f'{self.dlpath}/images'):
+			os.mkdir(f'{self.dlpath}/images')
 
 		if not os.path.exists('cache'):
 			os.mkdir('cache')
@@ -74,8 +80,8 @@ class MWin(QMainWindow, Ui_MWin):
 			os.mkdir('cache/avator')
 
 		dlpath = f'下载目录: {self.dlpath}'
-		self.dlPathBtn.setText(dlpath)
-		self.dlPathBtn.setToolTip(dlpath)
+		self.vdlPathBtn.setText(dlpath)
+		self.vdlPathBtn.setToolTip(dlpath)
 
 		self.vtable.setColumnWidth(0, 50)
 		self.vtable.setColumnWidth(1, 150)
@@ -107,9 +113,10 @@ class MWin(QMainWindow, Ui_MWin):
 	def connectSlots(self):
 		'''关联所有信号槽'''
 		# 文件菜单下 Action
+		self.hPageAction.triggered.connect(lambda: self.changePage(0))
 		self.vPageAction.triggered.connect(lambda: self.changePage(1))
 		self.pPageAction.triggered.connect(lambda: self.changePage(2))
-		self.fPageAction.triggered.connect(lambda: self.changePage(2))
+		self.fPageAction.triggered.connect(lambda: self.changePage(3))
 		self.exitAction.triggered.connect(QCoreApplication.quit)
 		
 		# 设置菜单下 Action
@@ -123,14 +130,14 @@ class MWin(QMainWindow, Ui_MWin):
 
 		# 按钮
 		self.searchBtn.clicked.connect(self.resolveInput)
-		self.dlPathBtn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(self.dlpath)))
-		self.v2homeBtn.clicked.connect(self.toHome)
-		self.vdownloadBtn.clicked.connect(self.download)
-		self.dlAllBox.clicked.connect(self.isAllDownload)
+		self.vdlPathBtn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(self.dlpath)))
+		self.vdownloadBtn.clicked.connect(lambda: self.download(0))
+		# self.vdlAllBox.clicked.connect(self.isAllDownload)
+		self.pdownloadBtn.clicked.connect(lambda: self.download(1))
 
 	def changePage(self, index):
 		'''修改当前页'''
-		if  0 < index < 3: self.stackedWidget.setCurrentIndex(index)
+		self.stackedWidget.setCurrentIndex(index)
 
 	def setLogo(self):
 		'''根据季节来更换logo(当前只有秋冬的;3)'''
@@ -228,8 +235,8 @@ class MWin(QMainWindow, Ui_MWin):
 		if not dlpath: return
 		self.dlpath = dlpath
 		dlpath = f'下载目录:{self.dlpath}'
-		self.dlPathBtn.setText(dlpath)
-		self.dlPathBtn.setToolTip(dlpath)
+		self.vdlPathBtn.setText(dlpath)
+		self.vdlPathBtn.setToolTip(dlpath)
 
 	def resolveInput(self):
 		index = self.comboBoxHome.currentIndex()
@@ -348,6 +355,7 @@ class MWin(QMainWindow, Ui_MWin):
 					self.vtable.item(row, x).setTextAlignment(Qt.AlignCenter)
 				except Exception as e:
 					pass # 显示进度条的列会报错
+			self.vlists.append(info[-1])
 		elif btype == 2:
 			for i in info:
 				row = self.ptable.rowCount()
@@ -358,10 +366,10 @@ class MWin(QMainWindow, Ui_MWin):
 				self.ptable.setItem(row, 5, QTableWidgetItem(str(len(i[5]))))
 				self.ptable.item(row, x).setTextAlignment(Qt.AlignCenter)
 				self.ptable.setItem(row, 6, QTableWidgetItem(';'.join(i[5])))
+				self.plists.append(i[5])
 		else:
 			pass
 
-		self.vlists.append(info[-1])
 
 	def resolveUserInfoDone(self, info):
 		pix = QPixmap(info[1])
@@ -369,32 +377,46 @@ class MWin(QMainWindow, Ui_MWin):
 		self.pavator.setScaledContents(True)
 		self.pavator.setToolTip(info[0])
 		self.pname.setText(info[0])
+		self.pname.setToolTip(info[0])
 
 	def errorHappened(self):
 		QMessageBox.warning(self, '嗶哩嗶哩盒子©Lewis Tian', '发生了一个错误，请重试...', QMessageBox.Ok)
 
-	def toHome(self):
-		'''回首页'''
-		self.stackedWidget.setCurrentIndex(0)
-
 	def isAllDownload(self):
 		'''是否下载全部视频'''
-		if self.dlAllBox.isChecked():
+		if self.vdlAllBox.isChecked():
 			self.vtable.setRangeSelected(
 					QTableWidgetSelectionRange(0, 0, 
 						self.vtable.rowCount()-1, self.vtable.columnCount()-1), 
 					True)
 
-	def download(self):
-		'''分发下载视频视频'''
-		rows = [x for x in range(self.vtable.rowCount()) if self.vtable.item(x, 0).isSelected()]
-		if not rows: return
-		for x in rows[::-1]:
-			val = self.vtable.cellWidget(x, 4).value()
-			if val == 100: rows.remove(x)
-		self.vDownlaod.num = rows
-		self.vDownlaod.urls = [self.vlists[x] for x in rows]
-		self.vDownlaod.start()
+	def download(self, dtype):
+		'''分发下载链接
+		dtype 0: 视频
+			  1： 图片 '''
+		if dtype == 0:
+			if self.vdlAllBox.isChecked():
+				rows = [x for x in range(self.vtable.rowCount())]
+			else:
+				rows = [x for x in range(self.vtable.rowCount()) if self.vtable.item(x, 0).isSelected()]
+			if not rows: return
+			for x in rows[::-1]:
+				val = self.vtable.cellWidget(x, 4).value()
+				if val == 100: rows.remove(x)
+			self.vDownlaod.num = rows
+			self.vDownlaod.urls = [self.vlists[x] for x in rows]
+			self.vDownlaod.start()
+		elif dtype == 1:
+			if self.pdlAllBox.isChecked():
+				rows = [x for x in range(self.ptable.rowCount())]
+			else:
+				rows = [x for x in range(self.ptable.rowCount()) if self.ptable.item(x, 0).isSelected()]
+			if not rows: return
+			self.pDownlaod.num = rows
+			self.pDownlaod.urls = [self.plists[x] for x in rows]
+			self.pDownlaod.start()
+		else:
+			pass
 
 	def updateProgress(self, row, percent):
 		'''更新进度条'''
@@ -558,6 +580,27 @@ class PictureRetrieval(QThread):
 			with open(path, 'wb') as f:
 				f.write(r.content)
 		self.user.emit([info['name'], path])
+
+class PictureDownlaod(QThread):
+	'''使用多线程下载图片'''
+	def __init__(self):
+		super(PictureDownlaod, self).__init__()
+
+	def run(self):
+		threads = []
+		for i, j in enumerate(self.num):
+			t = threading.Thread(target=self.download, args=(self.urls[i], ), name=str(j))
+			threads.append(t)
+
+		for j in threads:
+			j.start()
+
+	def download(self, url):
+		for x in url:
+			name = x.split('/')[-1]
+			path = f'{self.dlpath}/images/{name}'
+			if not os.path.exists(path):
+				urequest.urlretrieve(x, filename = path)
 
 def mainSplash():
 	'''启动画面'''
