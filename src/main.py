@@ -14,6 +14,7 @@ from contextlib import closing
 from glob import glob
 from urllib import request as urequest
 from copy import deepcopy
+from pprint import pprint
 import sys
 import os
 import shutil
@@ -44,8 +45,9 @@ class MWin(QMainWindow, Ui_MWin):
 		self.bgiPath = '' # 背景图片的路径
 		self.key = None # 视频链接 id
 		self.dlpath = 'download' # 下载目录
-		self.vlists = [] # 获取的视频信息
-		self.plists = [] # 获取的图片信息
+		self.vlists = [] # 获取的视频信息的链接
+		self.plists = [] # 获取的图片信息的链接
+		self.flists = [] # 收藏视频的aid
 
 		self.vRetrieval = VideoRetrieval()
 		self.vRetrieval.done.connect(self.resolveInfoDone)
@@ -62,6 +64,11 @@ class MWin(QMainWindow, Ui_MWin):
 
 		self.pDownlaod = PictureDownlaod()
 		self.pDownlaod.dlpath = self.dlpath
+
+		self.fRetrieval = FavoriteRetrieval()
+		self.fRetrieval.done.connect(self.resolveInfoDone)
+
+		self.fDownlaod = FavoriteDownlaod()
 
 		self.setLogo()
 		self.setBackgroundImage(self.bgiPath)
@@ -88,6 +95,9 @@ class MWin(QMainWindow, Ui_MWin):
 		self.vtable.setColumnWidth(2, 50)
 		self.vtable.setColumnWidth(4, 180)
 		self.vtable.setColumnWidth(5, 50)
+
+		for x in range(2, 6):
+			self.ftable.setColumnWidth(x, 60)
 
 	def resizeEvent(self, event):
 		'''窗口大小改变，背景图的大小也要改变
@@ -134,6 +144,7 @@ class MWin(QMainWindow, Ui_MWin):
 		self.vdownloadBtn.clicked.connect(lambda: self.download(0))
 		# self.vdlAllBox.clicked.connect(self.isAllDownload)
 		self.pdownloadBtn.clicked.connect(lambda: self.download(1))
+		self.fdownloadBtn.clicked.connect(lambda: self.download(2))
 
 	def changePage(self, index):
 		'''修改当前页'''
@@ -269,8 +280,12 @@ class MWin(QMainWindow, Ui_MWin):
 				keys = re.findall(r'com/(\d+)/favlist\?fid=(\d+)', text)[0]
 				self.mid, self.fid = keys
 			except Exception as e:
+				self.errorHappened('输入错误！链接应该如下所示:\nhttp://space.bilibili.com/9272615/favlist?fid=10086 ')
 				return
-			self.request(index)
+			self.fRetrieval.mid = self.mid
+			self.fRetrieval.fid = self.fid
+			self.fRetrieval.start()
+			# self.request(index)
 		else:
 			pass
 
@@ -282,9 +297,6 @@ class MWin(QMainWindow, Ui_MWin):
 			title = re.findall(r'<h1 title="(.*?)">', r)[0].replace(' ','-')
 			cover = re.findall(r'<meta.*?itemprop="image" content="(.*?)"/><meta', r)
 			print(title, cover)
-			# zz = 'page":(.*?),"from":"vupload","part":"(.*?)","duration":'
-			# links = re.findall(zz, r.text)
-			# print(links)
 		elif btype == 1:
 			page = 0
 			next_offset = 0
@@ -318,24 +330,32 @@ class MWin(QMainWindow, Ui_MWin):
 				with open('Cookie.txt') as f:
 					fheaders['Cookie'] = f.read()
 			except Exception as e:
-				pass
-			url = f'http://api.bilibili.com/x/space/fav/arc?vmid={self.mid}&ps=30&fid={self.fid}&tid=0&keyword=&pn={1}&order=fav_time&jsonp=jsonp'
-			print(url)
-			try:
-				r = requests.get(url, headers=fheaders).json()
-			except Exception as e:
-				print(e)
+				self.errorHappened('要获取收藏信息，请先保存cookie到当前程序目录下的Cookie.txt')
 				return
-			print(r)
+			total = 30
+			count = 0
+			p = 1
+			while count < total:
+				url = f'http://api.bilibili.com/x/space/fav/arc?vmid={self.mid}&ps=30&fid={self.fid}&tid=0&keyword=&pn={p}&order=fav_time&jsonp=jsonp'
+				try:
+					r = requests.get(url, headers=fheaders).json()
+				except Exception as e:
+					print(e)
+					return
+				data = r['data']
+				total = data['total']
+				count += 30
+				p += 1
+				pprint(data)
 		else:
 			pass
-			
 	
 	def resolveInfoDone(self, btype, info):
 		'''解析线程完成返回相关信息
 		btype 类型 1 => 视频 2=> 图片
 		1: info：序号 分p标题 标题 时长 大小 链接
 		2: info 列表：[description, upload_time, view_count, collect_count, like_count, pics]
+		3: info 列表：[aid,up,title,view,like,favorite,coin,tname,description]
 		'''
 		self.stackedWidget.setCurrentIndex(btype)
 		if btype == 1:
@@ -367,9 +387,16 @@ class MWin(QMainWindow, Ui_MWin):
 				self.ptable.item(row, x).setTextAlignment(Qt.AlignCenter)
 				self.ptable.setItem(row, 6, QTableWidgetItem(';'.join(i[5])))
 				self.plists.append(i[5])
+		elif btype == 3:
+			for i in info:
+				row = self.ftable.rowCount()
+				self.ftable.insertRow(row)
+				for x in range(len(i)-1):
+					self.ftable.setItem(row, x, QTableWidgetItem(i[x+1]))
+					self.ftable.item(row, x).setTextAlignment(Qt.AlignCenter)
+				self.flists.append(i[0])
 		else:
 			pass
-
 
 	def resolveUserInfoDone(self, info):
 		pix = QPixmap(info[1])
@@ -379,8 +406,8 @@ class MWin(QMainWindow, Ui_MWin):
 		self.pname.setText(info[0])
 		self.pname.setToolTip(info[0])
 
-	def errorHappened(self):
-		QMessageBox.warning(self, '嗶哩嗶哩盒子©Lewis Tian', '发生了一个错误，请重试...', QMessageBox.Ok)
+	def errorHappened(self, msg='发生了一个错误，请重试...'):
+		QMessageBox.warning(self, '嗶哩嗶哩盒子©Lewis Tian', msg, QMessageBox.Ok)
 
 	def isAllDownload(self):
 		'''是否下载全部视频'''
@@ -393,7 +420,8 @@ class MWin(QMainWindow, Ui_MWin):
 	def download(self, dtype):
 		'''分发下载链接
 		dtype 0: 视频
-			  1： 图片 '''
+			  1: 图片 
+			  2: 收藏'''
 		if dtype == 0:
 			if self.vdlAllBox.isChecked():
 				rows = [x for x in range(self.vtable.rowCount())]
@@ -415,6 +443,12 @@ class MWin(QMainWindow, Ui_MWin):
 			self.pDownlaod.num = rows
 			self.pDownlaod.urls = [self.plists[x] for x in rows]
 			self.pDownlaod.start()
+		elif dtype == 2:
+			rows = [x for x in range(self.ftable.rowCount()) if self.ftable.item(x, 0).isSelected()]
+			if not rows: return
+			self.fDownlaod.num = rows
+			self.fDownlaod.aids = [self.flists[x] for x in rows]
+			self.fDownlaod.start()
 		else:
 			pass
 
@@ -601,6 +635,74 @@ class PictureDownlaod(QThread):
 			path = f'{self.dlpath}/images/{name}'
 			if not os.path.exists(path):
 				urequest.urlretrieve(x, filename = path)
+
+class FavoriteRetrieval(QThread):
+	'''获取图片信息'''
+	done = pyqtSignal(int, list)
+	error = pyqtSignal()
+	def __init__(self):
+		super(FavoriteRetrieval, self).__init__()
+
+	def run(self):
+		total = 30
+		count = 0
+		page = 1
+		flist = []
+		fheaders = deepcopy(headers)
+		try:
+			with open('Cookie.txt') as f:
+				fheaders['Cookie'] = f.read()
+		except Exception as e:
+			self.errorHappened('要获取收藏信息，请先保存cookie到当前程序目录下的Cookie.txt')
+			return
+		while count < total:
+			url = f'http://api.bilibili.com/x/space/fav/arc?vmid={self.mid}&ps=30&fid={self.fid}&tid=0&keyword=&pn={page}&order=fav_time&jsonp=jsonp'
+			print(url)
+			try:
+				r = requests.get(url, headers=fheaders).json()
+			except Exception as e:
+				print(e)
+				return
+			try:
+				data = r['data']
+			except Exception as e:
+				print(e)
+				return
+			total = data['total']
+			count += 30
+			page += 1
+			for x in data['archives']:
+				p = []
+				aid = x['aid']
+				up = x['owner']['name']
+				title = x['title']
+				view = x['stat']['view']
+				like = x['stat']['like']
+				favorite = x['stat']['favorite']
+				coin = x['stat']['coin']
+				tname = x['tname']
+				description = x['desc'].replace('\n', ' ')
+				p = [aid,up,title,str(view),str(like),str(favorite),str(coin),tname,description]
+				flist.append(p)
+			self.done.emit(3, flist)
+		print('over')
+
+class FavoriteDownlaod(object):
+	"""docstring for FavoriteDownlaod"""
+	def __init__(self, arg):
+		super(FavoriteDownlaod, self).__init__()
+	
+	def run(self):
+		threads = []
+		for i, j in enumerate(self.num):
+			t = threading.Thread(target=self.download, args=(self.aids[i], ), name=str(j))
+			threads.append(t)
+
+		for j in threads:
+			j.start()
+
+	def download(self, url):
+		pass
 
 def mainSplash():
 	'''启动画面'''
