@@ -48,6 +48,7 @@ class MWin(QMainWindow, Ui_MWin):
 		self.vlists = [] # 获取的视频信息的链接
 		self.plists = [] # 获取的图片信息的链接
 		self.flists = [] # 收藏视频的aid
+		self.fvlists = [] # 收藏视频解析信息列表
 
 		self.vRetrieval = VideoRetrieval()
 		self.vRetrieval.done.connect(self.resolveInfoDone)
@@ -133,8 +134,9 @@ class MWin(QMainWindow, Ui_MWin):
 		self.minSizeAction.triggered.connect(self.modifyMinSize)
 		self.bgiPathAction.triggered.connect(self.modifyBGIPath)
 		self.downloadPathaction.triggered.connect(self.modifyDLPath)
+		self.pathAction.triggered.connect(lambda: QDesktopServices.openUrl(QUrl(self.dlpath)))
 
-		# 关于下的 Action
+		# 关于菜单下 Action
 		self.authorAction.triggered.connect(lambda: QDesktopServices.openUrl(QUrl('https://github.com/LewisTian')))
 		self.appAction.triggered.connect(lambda: QDesktopServices.openUrl(QUrl('https://github.com/LewisTian/bili-box')))
 
@@ -152,16 +154,24 @@ class MWin(QMainWindow, Ui_MWin):
 
 	def setLogo(self):
 		'''根据季节来更换logo(当前只有秋冬的;3)'''
+		self.logo.setOpenExternalLinks(True)
 		month = datetime.datetime.now().month
+		link = '<a href=http://space.bilibili.com/9272615><img src={src}></a>'
 		if 3 <= month <= 5:
-			pass
+			src = 'images/bili-spring.png'
+			self.logo.setText(link.format(src=src))
+			self.logo.setToolTip('嗶哩嗶哩春~')
 		elif 6 <= month <= 8:
-			pass
+			src = 'images/bili-summer.png'
+			self.logo.setText(link.format(src=src))
+			self.logo.setToolTip('嗶哩嗶哩夏~')
 		elif 9 <= month <= 11:
-			self.logo.setPixmap(QPixmap('images/bili-autumn.png'))
+			src = 'images/bili-autumn.png'
+			self.logo.setText(link.format(src=src))
 			self.logo.setToolTip('嗶哩嗶哩秋~')
 		else:
-			self.logo.setPixmap(QPixmap('images/bili-winter.png'))
+			src = 'images/bili-winter.png'
+			self.logo.setText(link.format(src=src))
 			self.logo.setToolTip('嗶哩嗶哩冬~')
 
 	def setBackgroundImage(self, path='images/background/background.jpg'):
@@ -282,6 +292,9 @@ class MWin(QMainWindow, Ui_MWin):
 			except Exception as e:
 				self.errorHappened('输入错误！链接应该如下所示:\nhttp://space.bilibili.com/9272615/favlist?fid=10086 ')
 				return
+			if not os.path.exists('Cookie.txt'):
+				self.errorHappened('要获取收藏信息，请先保存cookie到当前程序目录下的Cookie')
+				return
 			self.fRetrieval.mid = self.mid
 			self.fRetrieval.fid = self.fid
 			self.fRetrieval.start()
@@ -330,7 +343,6 @@ class MWin(QMainWindow, Ui_MWin):
 				with open('Cookie.txt') as f:
 					fheaders['Cookie'] = f.read()
 			except Exception as e:
-				self.errorHappened('要获取收藏信息，请先保存cookie到当前程序目录下的Cookie.txt')
 				return
 			total = 30
 			count = 0
@@ -446,9 +458,20 @@ class MWin(QMainWindow, Ui_MWin):
 		elif dtype == 2:
 			rows = [x for x in range(self.ftable.rowCount()) if self.ftable.item(x, 0).isSelected()]
 			if not rows: return
-			self.fDownlaod.num = rows
-			self.fDownlaod.aids = [self.flists[x] for x in rows]
-			self.fDownlaod.start()
+			# self.fDownlaod.num = rows
+			# self.fDownlaod.aids = [self.flists[x] for x in rows]
+			# self.fDownlaod.start()
+			aids = [self.flists[x] for x in rows]
+			threads = []
+			for i, j in enumerate(aids):
+				t = VideoRetrieval()
+				t.done.connect(self.resolveInfoDone)
+				t.error.connect(self.errorHappened)
+				t.key = j
+				threads.append(t)
+			self.fvlists.append(threads)
+			for t in self.fvlists[-1]:
+				t.start()
 		else:
 			pass
 
@@ -459,6 +482,7 @@ class MWin(QMainWindow, Ui_MWin):
 	def updateSlice(self, row, p):
 		slices = self.vtable.item(row, 5).text().split('/')[1]
 		self.vtable.setItem(row, 5, QTableWidgetItem(f'{p}/{slices}'))
+		self.vtable.item(row, 5).setTextAlignment(Qt.AlignCenter)
 
 class VideoRetrieval(QThread):
 	'''获取视频下载链接'''
@@ -470,14 +494,20 @@ class VideoRetrieval(QThread):
 	def run(self):		
 		url = f'https://www.bilibili.com/video/av{self.key}'
 		r = requests.get(url, headers = headers).text
-		title = re.findall(r'<h1 title="(.*?)">', r)[0].replace(' ','-')
+		try:
+			title = re.findall(r'<h1 title="(.*?)">', r)[0].replace(' ','-')
+		except Exception as e:
+			'''视频不见了'''
+			self.error.emit()
+			return
 		self.title = title
-		cover = re.findall(r'<meta.*?itemprop="image" content="(.*?)"/><meta', r)
-		self.cover = cover
+		# cover = re.findall(r'<meta.*?itemprop="image" content="(.*?)"/><meta', r)
+		# self.cover = cover
 		pages = re.findall(r'page":(.*?),"from":"vupload","part":"(.*?)","duration":', r) 
 		if not pages:
 			'''可能是番剧、电影啥的无法解析出来'''
 			self.error.emit()
+			return
 		with futures.ThreadPoolExecutor(32) as executor:
 			executor.map(self.resolve, pages)
 
@@ -486,7 +516,7 @@ class VideoRetrieval(QThread):
 		page: (index, page title)
 		'''
 		url = f'https://www.bilibili.com/video/av{self.key}?p={page[0]}'
-		r = requests.get(url, headers=headers).text
+		r = requests.get(url, headers = headers).text
 		regex = '"order":(.*?),"length":(.*?),"size":(.*?),.*?"url":"(.*?)"'
 		result = re.findall(regex, r) # 序号 时长 大小 链接
 		time = str(sum([int(i[1]) for i in result])//60000) +":"+str(int((sum([int(i[1]) for i in result])%60000)//1000))
@@ -533,7 +563,7 @@ class VideoDownlaod(QThread):
 		folder = self.dlpath + '/' + url[0].split('?')[0].split('/')[-1].split('-')[0]
 		for i, j in enumerate(url):
 			filename = j.split('?')[0].split('/')[-1]
-			print(f'path: {folder}/{filename}')
+			print(f'path: {folder}/{filename}\n')
 			if not os.path.exists(folder):
 				os.mkdir(folder)
 			urequest.urlretrieve(j, filename=f'{folder}/{filename}', reporthook=self.report)
@@ -549,6 +579,7 @@ class VideoDownlaod(QThread):
 			self.updateProgress.emit(int(threading.current_thread().name), percent)
 
 	def merge(self, folder):
+		'''若是分片>1则会合并视频'''
 		files = glob(folder+'/*.flv')
 		outlists = []
 		for i, x in enumerate(files):
@@ -557,10 +588,13 @@ class VideoDownlaod(QThread):
 			print(x, outfile)
 			s = f'ffmpeg.exe -i {x} -vcodec copy -acodec copy -vbsf h264_mp4toannexb {outfile}'
 			os.system(s)
-		s = f'''ffmpeg.exe -i "concat:{'|'.join(outlists)}" -acodec copy -vcodec copy -absf aac_adtstoasc {folder}/{folder}.mp4'''
+		s = f'''ffmpeg.exe -i "concat:{'|'.join(outlists)}" -acodec copy -vcodec copy -absf aac_adtstoasc {folder}/{folder.split('/')[-1]}.mp4'''
 		os.system(s)
 		for x in outlists:
 			os.remove(x)
+		for x in files:
+			os.remove(x)
+		
 
 class PictureRetrieval(QThread):
 	'''获取图片信息'''
@@ -653,7 +687,7 @@ class FavoriteRetrieval(QThread):
 			with open('Cookie.txt') as f:
 				fheaders['Cookie'] = f.read()
 		except Exception as e:
-			self.errorHappened('要获取收藏信息，请先保存cookie到当前程序目录下的Cookie.txt')
+			print('要获取收藏信息，请先保存cookie到当前程序目录下的Cookie.txt')
 			return
 		while count < total:
 			url = f'http://api.bilibili.com/x/space/fav/arc?vmid={self.mid}&ps=30&fid={self.fid}&tid=0&keyword=&pn={page}&order=fav_time&jsonp=jsonp'
@@ -661,7 +695,7 @@ class FavoriteRetrieval(QThread):
 			try:
 				r = requests.get(url, headers=fheaders).json()
 			except Exception as e:
-				print(e)
+				self.error.emit()
 				return
 			try:
 				data = r['data']
@@ -687,9 +721,9 @@ class FavoriteRetrieval(QThread):
 			self.done.emit(3, flist)
 		print('over')
 
-class FavoriteDownlaod(object):
+class FavoriteDownlaod(QThread):
 	"""docstring for FavoriteDownlaod"""
-	def __init__(self, arg):
+	def __init__(self):
 		super(FavoriteDownlaod, self).__init__()
 	
 	def run(self):
@@ -701,8 +735,8 @@ class FavoriteDownlaod(object):
 		for j in threads:
 			j.start()
 
-	def download(self, url):
-		pass
+	def download(self, aid):
+		print(aid)
 
 def mainSplash():
 	'''启动画面'''

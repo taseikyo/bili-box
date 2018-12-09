@@ -51,6 +51,7 @@ class Ui_MWin(object):
         self.logo.setMinimumSize(QtCore.QSize(220, 105))
         self.logo.setMaximumSize(QtCore.QSize(220, 105))
         self.logo.setText("")
+        self.logo.setOpenExternalLinks(False)
         self.logo.setObjectName("logo")
         self.layout2.addWidget(self.logo)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -298,6 +299,7 @@ class Ui_MWin(object):
         font = QtGui.QFont()
         font.setPointSize(12)
         self.fdownloadBtn.setFont(font)
+        self.fdownloadBtn.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
         self.fdownloadBtn.setObjectName("fdownloadBtn")
         self.horizontalLayout.addWidget(self.fdownloadBtn)
         self.verticalLayout_7.addLayout(self.horizontalLayout)
@@ -363,6 +365,9 @@ class Ui_MWin(object):
         self.hPageAction = QtWidgets.QAction(MWin)
         self.hPageAction.setIcon(icon)
         self.hPageAction.setObjectName("hPageAction")
+        self.pathAction = QtWidgets.QAction(MWin)
+        self.pathAction.setIcon(icon5)
+        self.pathAction.setObjectName("pathAction")
         self.Setting.addAction(self.minSizeAction)
         self.Setting.addAction(self.bgiPathAction)
         self.Setting.addAction(self.downloadPathaction)
@@ -372,6 +377,8 @@ class Ui_MWin(object):
         self.menu.addAction(self.vPageAction)
         self.menu.addAction(self.pPageAction)
         self.menu.addAction(self.fPageAction)
+        self.menu.addAction(self.pathAction)
+        self.menu.addSeparator()
         self.menu.addAction(self.exitAction)
         self.menuBar.addAction(self.menu.menuAction())
         self.menuBar.addAction(self.Setting.menuAction())
@@ -383,7 +390,7 @@ class Ui_MWin(object):
 
     def retranslateUi(self, MWin):
         _translate = QtCore.QCoreApplication.translate
-        MWin.setWindowTitle(_translate("MWin", "嗶哩嗶哩盒子©Lewis Tian"))
+        MWin.setWindowTitle(_translate("MWin", "嗶哩嗶哩盒子v0.0.1 ©Lewis Tian "))
         self.comboBoxHome.setItemText(0, _translate("MWin", "视频"))
         self.comboBoxHome.setItemText(1, _translate("MWin", "图片"))
         self.comboBoxHome.setItemText(2, _translate("MWin", "收藏"))
@@ -458,9 +465,9 @@ class Ui_MWin(object):
         self.appAction.setShortcut(_translate("MWin", "Shift+H"))
         self.downloadPathaction.setText(_translate("MWin", "下载路径"))
         self.downloadPathaction.setShortcut(_translate("MWin", "Ctrl+P"))
-        self.vPageAction.setText(_translate("MWin", "视频下载页"))
+        self.vPageAction.setText(_translate("MWin", "视频页"))
         self.vPageAction.setShortcut(_translate("MWin", "Ctrl+Q"))
-        self.pPageAction.setText(_translate("MWin", "图片下载页"))
+        self.pPageAction.setText(_translate("MWin", "图片页"))
         self.pPageAction.setShortcut(_translate("MWin", "Ctrl+E"))
         self.exitAction.setText(_translate("MWin", "退出"))
         self.exitAction.setShortcut(_translate("MWin", "Ctrl+W"))
@@ -468,5 +475,7 @@ class Ui_MWin(object):
         self.fPageAction.setShortcut(_translate("MWin", "Ctrl+F"))
         self.hPageAction.setText(_translate("MWin", "首页"))
         self.hPageAction.setShortcut(_translate("MWin", "Ctrl+H"))
+        self.pathAction.setText(_translate("MWin", "下载目录"))
+        self.pathAction.setShortcut(_translate("MWin", "Ctrl+O"))
 
 import res_rc
