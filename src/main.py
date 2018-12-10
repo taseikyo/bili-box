@@ -293,7 +293,7 @@ class MWin(QMainWindow, Ui_MWin):
 				self.errorHappened('输入错误！链接应该如下所示:\nhttp://space.bilibili.com/9272615/favlist?fid=10086 ')
 				return
 			if not os.path.exists('Cookie.txt'):
-				self.errorHappened('要获取收藏信息，请先保存cookie到当前程序目录下的Cookie')
+				self.errorHappened('要获取收藏信息，请先保存cookie到当前程序目录下的Cookie.txt')
 				return
 			self.fRetrieval.mid = self.mid
 			self.fRetrieval.fid = self.fid
