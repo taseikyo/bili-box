@@ -15,6 +15,7 @@ from glob import glob
 from urllib import request as urequest
 from copy import deepcopy
 from pprint import pprint
+import json
 import sys
 import os
 import shutil
@@ -388,6 +389,7 @@ class MWin(QMainWindow, Ui_MWin):
 				except Exception as e:
 					pass # 显示进度条的列会报错
 			self.vlists.append(info[-1])
+			
 		elif btype == 2:
 			for i in info:
 				row = self.ptable.rowCount()
@@ -523,7 +525,20 @@ class VideoRetrieval(QThread):
 		size = round(sum([int(i[2]) for i in result])/1024/1024, 1)
 		url = [i[3] for i in result]
 		ret = list(page) + [self.title, time, size, url] # [类型] 序号 分p标题 标题 时长 大小 链接
+		threading.Thread(target=self.dumpInfo, args=(self.key, ret)).start()
 		self.done.emit(1, ret)
+
+	def dumpInfo(self, aid, info):
+		if os.path.exists(f'cache/av{aid}.json'): return
+		r = {}
+		r['aid'] = aid
+		r['ptitle'] = info[1]
+		r['title'] = info[2]
+		r['duration'] = info[3]
+		r['size'] = info[4]
+		r['urls'] = info[5]
+		with open(f'cache/av{aid}.json', 'w', encoding = 'utf-8') as f:
+			json.dump(r, f, ensure_ascii=False, indent=4)
 
 class VideoDownlaod(QThread):
 	'''使用多线程下载视频'''
@@ -671,7 +686,7 @@ class PictureDownlaod(QThread):
 				urequest.urlretrieve(x, filename = path)
 
 class FavoriteRetrieval(QThread):
-	'''获取图片信息'''
+	'''获取收藏信息'''
 	done = pyqtSignal(int, list)
 	error = pyqtSignal()
 	def __init__(self):
@@ -718,8 +733,19 @@ class FavoriteRetrieval(QThread):
 				description = x['desc'].replace('\n', ' ')
 				p = [aid,up,title,str(view),str(like),str(favorite),str(coin),tname,description]
 				flist.append(p)
+			threading.Thread(target=self.dumpInfos, args=(flist,)).start()
 			self.done.emit(3, flist)
 		print('over')
+
+	def dumpInfos(self, info):
+		header = ['aid','up','title','view','like','favorite','coin','tname','description']
+		for x in info:
+			if os.path.exists(f'cache/fav{x[0]}.json'): continue
+			r = {}
+			for i, j in enumerate(header):
+				r[j] = x[i]
+			with open(f'cache/fav{x[0]}.json', 'w', encoding = 'utf-8') as f:
+				json.dump(r, f, ensure_ascii=False, indent=4)
 
 class FavoriteDownlaod(QThread):
 	"""docstring for FavoriteDownlaod"""
