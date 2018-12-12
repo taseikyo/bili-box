@@ -581,10 +581,15 @@ class VideoDownlaod(QThread):
 			print(f'path: {folder}/{filename}\n')
 			if not os.path.exists(folder):
 				os.mkdir(folder)
+			if os.path.exists(f'{folder}/{filename}'):
+				self.updateProgress.emit(int(threading.current_thread().name), 100)
+				continue
 			urequest.urlretrieve(j, filename=f'{folder}/{filename}', reporthook=self.report)
 			self.updateSlice.emit(int(threading.current_thread().name), str(i+1))
 		if len(url) > 1:
 			self.merge(folder)
+		else:
+			self.change2mp4(folder)
 		
 	def report(self, count, blockSize, totalSize):
 		downloadedSize = count * blockSize
@@ -602,14 +607,18 @@ class VideoDownlaod(QThread):
 			outlists.append(outfile)
 			print(x, outfile)
 			s = f'ffmpeg.exe -i {x} -vcodec copy -acodec copy -vbsf h264_mp4toannexb {outfile}'
-			os.system(s)
-		s = f'''ffmpeg.exe -i "concat:{'|'.join(outlists)}" -acodec copy -vcodec copy -absf aac_adtstoasc {folder}/{folder.split('/')[-1]}.mp4'''
-		os.system(s)
+			os.popen(s)
+		s = f'''ffmpeg.exe -y -i "concat:{'|'.join(outlists)}" -acodec copy -vcodec copy -absf aac_adtstoasc {folder}/{folder.split('/')[-1]}.mp4'''
+		os.popen(s)
 		for x in outlists:
 			os.remove(x)
-		for x in files:
-			os.remove(x)
-		
+
+	def change2mp4(self, folder):
+		files = glob(folder+'/*.flv')
+		for i, x in enumerate(files):
+			out = folder.split('/')[-1]
+			s = f'''ffmpeg -y -i {x} -c copy {folder}/{out}.mp4'''
+			os.popen(s)
 
 class PictureRetrieval(QThread):
 	'''获取图片信息'''
@@ -696,7 +705,6 @@ class FavoriteRetrieval(QThread):
 		total = 30
 		count = 0
 		page = 1
-		flist = []
 		fheaders = deepcopy(headers)
 		try:
 			with open('Cookie.txt') as f:
@@ -705,6 +713,7 @@ class FavoriteRetrieval(QThread):
 			print('要获取收藏信息，请先保存cookie到当前程序目录下的Cookie.txt')
 			return
 		while count < total:
+			flist = []
 			url = f'http://api.bilibili.com/x/space/fav/arc?vmid={self.mid}&ps=30&fid={self.fid}&tid=0&keyword=&pn={page}&order=fav_time&jsonp=jsonp'
 			print(url)
 			try:
