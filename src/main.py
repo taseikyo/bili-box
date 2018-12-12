@@ -537,7 +537,10 @@ class VideoRetrieval(QThread):
 		r['duration'] = info[3]
 		r['size'] = info[4]
 		r['urls'] = info[5]
-		with open(f'cache/av{aid}.json', 'w', encoding = 'utf-8') as f:
+		tmpnew = 1
+		while os.path.exists(f'cache/av{aid}-{tmpnew}p.json'):
+			tmpnew += 1
+		with open(f'cache/av{aid}-{tmpnew}p.json', 'w', encoding = 'utf-8') as f:
 			json.dump(r, f, ensure_ascii=False, indent=4)
 
 class VideoDownlaod(QThread):
@@ -583,8 +586,8 @@ class VideoDownlaod(QThread):
 				os.mkdir(folder)
 			if os.path.exists(f'{folder}/{filename}'):
 				self.updateProgress.emit(int(threading.current_thread().name), 100)
-				continue
-			urequest.urlretrieve(j, filename=f'{folder}/{filename}', reporthook=self.report)
+			else:
+				urequest.urlretrieve(j, filename=f'{folder}/{filename}', reporthook=self.report)
 			self.updateSlice.emit(int(threading.current_thread().name), str(i+1))
 		if len(url) > 1:
 			self.merge(folder)
@@ -606,11 +609,13 @@ class VideoDownlaod(QThread):
 			outfile = f'{folder}/{i}.ts'
 			outlists.append(outfile)
 			print(x, outfile)
-			s = f'ffmpeg.exe -i {x} -vcodec copy -acodec copy -vbsf h264_mp4toannexb {outfile}'
-			os.popen(s)
+			s = f'ffmpeg.exe -y -i {x} -vcodec copy -acodec copy -vbsf h264_mp4toannexb {outfile}'
+			os.system(s)
 		s = f'''ffmpeg.exe -y -i "concat:{'|'.join(outlists)}" -acodec copy -vcodec copy -absf aac_adtstoasc {folder}/{folder.split('/')[-1]}.mp4'''
-		os.popen(s)
+		os.system(s)
 		for x in outlists:
+			os.remove(x)
+		for x in files:
 			os.remove(x)
 
 	def change2mp4(self, folder):
@@ -618,7 +623,9 @@ class VideoDownlaod(QThread):
 		for i, x in enumerate(files):
 			out = folder.split('/')[-1]
 			s = f'''ffmpeg -y -i {x} -c copy {folder}/{out}.mp4'''
-			os.popen(s)
+			os.system(s)
+		for x in files:
+			os.remove(x)
 
 class PictureRetrieval(QThread):
 	'''获取图片信息'''
