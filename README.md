@@ -33,6 +33,7 @@
 	- 根据季节修改左上角 logo(很抱歉只收集到了嗶哩嗶哩秋和冬，若是谁有春和夏麻烦发我一下)
 
 ### Installation
+合并视频使用 ffmpeg，所以请先下载并添加到 PATH 环境变量 <br>
 由于是个人开发来玩，可以会出现意想不到的 bug，欢迎提 [issue](https://github.com/LewisTian/bili-box/issues) <br>
 **注意：** 如要下载收藏的视频，须将 cookie 保存到程序目录下的 Cookie.txt 中
 
