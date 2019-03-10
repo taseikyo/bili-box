@@ -9,6 +9,8 @@
 
 注：本项目图标大部分来自 [iconfont](http://www.iconfont.cn).
 
+### 由于哔哩哔哩更新(?)导致之前获取视频下载链接的方法失效，导致新投稿的视频无法下载，或许得寻求新的方法了。
+
 ### Preface
 这个算是对之前做的一个 [bilibili-kit](https://github.com/LewisTian/PyQt5-Apps/blob/master/bilibili-kit) 的一个升级/整合吧(其实是我不小心把它的 Qt 文件夹删了 ;3)<br >
 因为界面是用 Qt 写的，然后用 pyuic5 将 ui 文件转成 py 来使用，没了 Qt 相关的代码我就改不了界面，而且过了这么久，没有界面对着看，我都忘了那些变量对应的是哪个控件；所以这次会吸取教训将 Qt 的文件夹也上传 ;0 ，将其放到 Qt/ 路径下，而其他 Python 源代码将放在 src/ 路径下 <span><img src="images/cry.png" height="20" alt="掩面哭" title="掩面哭"></span>
@@ -30,7 +32,7 @@
 	- 修改背景图片
 	- 修改下载路径
 - 其他
-	- 根据季节修改左上角 logo(很抱歉只收集到了嗶哩嗶哩秋和冬，若是谁有春和夏麻烦发我一下)
+	- 根据季节修改左上角 logo
 
 ### Installation
 合并视频使用 ffmpeg，所以请先下载并添加到 PATH 环境变量 <br>
